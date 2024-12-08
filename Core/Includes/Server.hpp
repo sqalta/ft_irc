@@ -49,22 +49,20 @@ private:
     std::string serverName;
 
     void initializeCommandMap();
-    void initilizeServer();
-    void runServer();
-    void handleNewConnection();
-    void handleClientData(size_t clientIndex);
-    void handleClientDisconnect(size_t index);
+    void initializeMainSocket();
+    void startListening();
+	void initializePoll();
+	int waitForEvents();
+	void checkAndProcessEvents();
+	void processMainSocketEvents();
+	void processClientSocketEvents(size_t clientIndex);
+    void createNewConnection();
+    void handleClientEvent(size_t clientIndex);
+    void disconnectClient(size_t index);
     void setNonBlocking(int fd);
     void processCommand(int clientId);
     void broadcastToChannel(const Channel& channel, const std::string& message);
-    int getClientIndexBySocket(int socket) {
-        for (size_t i = 0; i < clients.size(); i++) {
-            if (clients[i].getSocket() == socket)
-                return i;
-        }
-        return -1;
-    }
-
+    int getClientIdBySocket(int socket);
 public:
     Server(int port, const std::string& pass);
     ~Server();
@@ -78,12 +76,13 @@ public:
     // Yardımcı metodlar
     int perr(const std::string& err, int sockfd);
     int getClientIndex(const std::string& name);
-    int getClientIndex2(const std::string& name, const std::vector<Client>& clients);
-    void checkCommands(Server& server, const std::string& buffer, int socket);
+    int getClientIndexInList(const std::string& name, const std::vector<Client>& clients);
+    void checkCommands(const std::string& buffer, int socket);
     int isInChannel(const std::vector<Client>& clients, const std::string& nickname);
     int getChannelIndex(const std::string& channelName);
     void logCommand(const std::string& command, int clientId);
     void checkRegistration(int id);
+	std::vector<std::string> Server::parseLine(const std::string& line);
 
     // Komut işleme metodları
     void User(size_t j, int id);

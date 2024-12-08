@@ -46,7 +46,7 @@ void Server::Part(size_t j, int id)
 
     // Kullanıcıyı kanaldan çıkar
     channelClients.erase(channelClients.begin() + 
-                        getClientIndex2(clients[id].getNickName(), channelClients));
+                        getClientIndexInList(clients[id].getNickName(), channelClients));
     channels[channelIndex].setClients(channelClients);
     
     // Kullanıcının joinedChannels listesinden kanalı kaldır

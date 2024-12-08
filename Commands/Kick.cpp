@@ -52,7 +52,7 @@ void Server::Kick(size_t j, int id)
         return;
     }
     std::vector<Client> channelClients = channels[channelIndex].getClients();
-    int targetUserIndex = getClientIndex2(targetUser, channelClients);
+    int targetUserIndex = getClientIndexInList(targetUser, channelClients);
     
     if (targetUserIndex == -1)
     {

@@ -3,9 +3,13 @@
 Server::Server(int port, const std::string& pass) 
     : port(port), pass(pass), serverName("ft_irc") {
     initializeCommandMap();
-    initilizeServer();
-    runServer();
+    initializeMainSocket();
+    startListening();
 }
+
+std::vector<Channel> Server::getChannels() { return channels; }
+std::vector<Client> Server::getClients() { return clients; }
+std::vector<std::string> Server::getCommands() { return commands; }
 
 Server::~Server() {
     close(sockfd);
@@ -32,7 +36,7 @@ void Server::initializeCommandMap() {
     commandMap[MODE] = &Server::Mode;
 }
 
-void Server::initilizeServer() {
+void Server::initializeMainSocket() {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == SOCKET_ERROR)
         perr("[ERROR] Failed to create socket", sockfd);
@@ -57,41 +61,54 @@ void Server::initilizeServer() {
     std::cout << "[INFO] IRC Server is listening for connections" << std::endl;
 }
 
-void Server::setNonBlocking(int fd) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
-        perr("[ERROR] Failed to get socket flags", fd);
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-        perr("[ERROR] Failed to set non-blocking mode", fd);
-}
-
-void Server::runServer() {
-    struct pollfd pfd;
-    pfd.fd = sockfd;
-    pfd.events = POLLIN;
-    pollfds.push_back(pfd);
+void Server::startListening() {
+    initializePoll();
 
     while (true) {
-        int ready = poll(&pollfds[0], pollfds.size(), -1);
-        if (ready < 0) {
-            if (errno == EINTR) continue;
-            perror("[ERROR] Poll failed");
-            break;
-        }
+        int ready = waitForEvents();
+        if (ready < 0)
+			continue;
 
-        if (pollfds[0].revents & POLLIN) {
-            handleNewConnection();
-        }
+		checkAndProcessEvents();
+    }
+}
 
-        for (size_t i = 1; i < pollfds.size(); ++i) {
-            if (pollfds[i].revents & POLLIN) {
-                handleClientData(i);
+void Server::checkAndProcessEvents() {
+    for (size_t i = 0; i < pollfds.size(); ++i) {
+        if (pollfds[i].revents & POLLIN) {
+            if (i == 0) {
+                processMainSocketEvents();
+            } else {
+                processClientSocketEvents(i);
             }
         }
     }
 }
 
-void Server::handleNewConnection() {
+void Server::initializePoll() {
+    struct pollfd pfd;
+    pfd.fd = sockfd;
+    pfd.events = POLLIN;
+    pollfds.push_back(pfd);
+
+    std::cout << "[INFO] Poll initialized. Ready to accept connections." << std::endl;
+}
+
+int Server::waitForEvents() {
+    int ready = poll(&pollfds[0], pollfds.size(), -1);
+    if (ready < 0) {
+        if (errno == EINTR) return -1;
+        perror("[ERROR] Poll failed");
+        return -1;
+    }
+    return ready;
+}
+
+void Server::processMainSocketEvents() {
+	createNewConnection();
+}
+
+void Server::createNewConnection() {
     int new_socket = accept(sockfd, NULL, NULL);
     if (new_socket >= 0) {
         setNonBlocking(new_socket);
@@ -110,26 +127,51 @@ void Server::handleNewConnection() {
     }
 }
 
-void Server::handleClientData(size_t clientIndex) {
-    char buffer[BUFFER_SIZE] = {0};
-    int valread = recv(pollfds[clientIndex].fd, buffer, BUFFER_SIZE - 1, 0);
-
-    if (valread >= BUFFER_SIZE) {
-        handleClientDisconnect(clientIndex);
-        return;
-    }
-    if (valread > 0) {
-        buffer[valread] = '\0';
-        checkCommands(*this, buffer, pollfds[clientIndex].fd);
-        logCommand(buffer, clientIndex - 1);
-        processCommand(clientIndex - 1);
-    }
-    else if (valread == 0 || (valread < 0 && errno != EAGAIN)) {
-        handleClientDisconnect(clientIndex);
-    }
+void Server::processClientSocketEvents(size_t clientIndex) {
+    handleClientEvent(clientIndex);
 }
 
-void Server::handleClientDisconnect(size_t index) {
+int checkBufferOverflow(int bytes) {
+	if (bytes > BUFFER_SIZE)
+		return 1;
+	return 0;
+}
+
+int checkClientDisconnected(int receivedBytes) {
+    if (receivedBytes == 0) {
+        return 1; // Client bağlantıyı düzgün bir şekilde kapattı
+    }
+    if (receivedBytes < 0 && errno != EAGAIN) {
+        return -1; // Client bağlantısında hata oluştu
+    }
+    return 0; // Client hala aktif
+}
+
+
+void Server::handleClientEvent(size_t clientIndex) {
+    char buffer[BUFFER_SIZE] = {0};
+    int receivedBytes = recv(pollfds[clientIndex].fd, buffer, BUFFER_SIZE - 1, 0);
+	if (checkBufferOverflow(receivedBytes))
+		return disconnectClient(clientIndex);
+    if (checkClientDisconnected(receivedBytes)) {
+        return disconnectClient(clientIndex);
+    }
+    buffer[receivedBytes] = '\0';
+    checkCommands(buffer, pollfds[clientIndex].fd);
+    logCommand(buffer, clientIndex - 1);
+    processCommand(clientIndex - 1);
+}
+
+
+void Server::setNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        perr("[ERROR] Failed to get socket flags", fd);
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+        perr("[ERROR] Failed to set non-blocking mode", fd);
+}
+
+void Server::disconnectClient(size_t index) {
     int clientId = index - 1;
     
     // Socket'i kapat
@@ -169,10 +211,6 @@ void Server::processCommand(int clientId) {
     }
 }
 
-std::vector<Channel> Server::getChannels() { return channels; }
-std::vector<Client> Server::getClients() { return clients; }
-std::vector<std::string> Server::getCommands() { return commands; }
-
 int Server::perr(const std::string& err, int sockfd) {
     std::cout << err << std::endl;
     close(sockfd);
@@ -187,7 +225,7 @@ int Server::getClientIndex(const std::string& name) {
     return -1;
 }
 
-int Server::getClientIndex2(const std::string& name, const std::vector<Client>& clients) {
+int Server::getClientIndexInList(const std::string& name, const std::vector<Client>& clients) {
     for (size_t i = 0; i < clients.size(); i++) {
         if (clients[i].getNickName() == name)
             return i;
@@ -195,40 +233,57 @@ int Server::getClientIndex2(const std::string& name, const std::vector<Client>& 
     return -1;
 }
 
-void Server::checkCommands(Server& server, const std::string& buffer, int socket) {
-    std::istringstream ss(buffer);
-    (void)server;
+int Server::getClientIdBySocket(int socket) {
+    for (size_t i = 0; i < clients.size(); i++) {
+        if (clients[i].getSocket() == socket)
+            return i;
+    }
+    return -1;
+}
+
+void Server::checkCommands(const std::string& buffer, int socket) {
+    std::istringstream bufferStream(buffer);
     (void)socket;
-    std::string line;
     commands.clear();
 
-    while (std::getline(ss, line, '\n')) {
+    std::string line;
+
+    while (std::getline(bufferStream, line, '\n')) {
         if (line.empty()) continue;
-        
-        if (line[line.length()-1] == '\r')
-            line = line.substr(0, line.length()-1);
 
-        std::vector<std::string> lineCommands;
-        std::string word;
-        std::istringstream iss(line);
-        bool colonFound = false;
-
-        while (iss >> word) {
-            if (!colonFound && word[0] == ':') {
-                colonFound = true;
-                std::string restOfLine;
-                getline(iss, restOfLine);
-                lineCommands.push_back(word.substr(1) + restOfLine);
-                break;
-            }
-            lineCommands.push_back(word);
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
         }
+        std::vector<std::string> parsedCommands = parseLine(line);
 
-        if (!lineCommands.empty()) {
-            commands = lineCommands;
-            processCommand(getClientIndexBySocket(socket));
+        if (!parsedCommands.empty()) {
+            commands = parsedCommands;
+			int clientId = getClientIdBySocket(socket);
+            processCommand(clientId);
         }
     }
+}
+
+std::vector<std::string> Server::parseLine(const std::string& line) {
+    std::vector<std::string> parsedCommands;
+    std::istringstream lineStream(line);
+    std::string word;
+    bool found = false; // ':' sonrası mesajın bir kez alınması için bayrak
+
+    while (lineStream >> word) {
+        // Eğer ':' ile başlayan bir kelime varsa, kalan tüm satırı mesaj olarak işle
+        if (!found && word[0] == ':') {
+            found = true;
+            std::string remainingLine;
+            std::getline(lineStream, remainingLine); // ':' sonrası kalan kısmı oku
+            parsedCommands.push_back(word.substr(1) + remainingLine);
+            break;
+        }
+
+        parsedCommands.push_back(word);
+    }
+
+    return parsedCommands;
 }
 
 void Server::logCommand(const std::string& command, int clientId) {
