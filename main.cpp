@@ -1,4 +1,4 @@
-#include "Server/Server.hpp"
+#include "Core/Includes/Server.hpp"
 #include <iostream>
 
 int main(int argc, char **argv)

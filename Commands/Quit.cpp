@@ -1,4 +1,4 @@
-#include "../Server/Server.hpp"
+#include "../Core/Includes/Server.hpp"
 
 void Server::Quit(size_t j, int id) {
     (void)j;

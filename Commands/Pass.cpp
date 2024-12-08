@@ -1,6 +1,6 @@
-#include "../Server/Server.hpp"
-#include "../Commands/ValidationUtils.hpp"
-#include "../Commands/NumericReplies.hpp"
+#include "../Core/Includes/Server.hpp"
+#include "ValidationUtils.hpp"
+#include "NumericReplies.hpp"
 
 void Server::Pass(size_t j, int id) {
     if (!ValidationUtils::validateCommandFormat(commands, 2)) {

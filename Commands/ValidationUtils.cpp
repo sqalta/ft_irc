@@ -34,7 +34,12 @@ bool ValidationUtils::validateAdminPrivileges(const Channel& channel, const std:
 }
 
 bool ValidationUtils::validatePassword(const std::string& inputPass, const std::string& serverPass) {
-    return inputPass == serverPass;
+    std::string cleanPass = inputPass;
+    // ':' karakteri ile başlıyorsa kaldır
+    if (!cleanPass.empty() && cleanPass[0] == ':') {
+        cleanPass = cleanPass.substr(1);
+    }
+    return cleanPass == serverPass;
 }
 
 bool ValidationUtils::validateUserExists(const std::vector<Client>& clients, const std::string& nickname) {

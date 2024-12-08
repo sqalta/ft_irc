@@ -1,6 +1,6 @@
-#include "../Server/Server.hpp"
-#include "../Commands/ValidationUtils.hpp"
-#include "../Commands/NumericReplies.hpp"
+#include "../Core/Includes/Server.hpp"
+#include "ValidationUtils.hpp"
+#include "NumericReplies.hpp"
 
 void Server::Kick(size_t j, int id)
 {

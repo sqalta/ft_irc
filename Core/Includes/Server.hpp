@@ -13,8 +13,8 @@
 #include <poll.h>
 #include <unistd.h>
 #include <errno.h>
-#include "../Client/Client.hpp"
-#include "../Channel/Channel.hpp"
+#include "Client.hpp"
+#include "Channel.hpp"
 
 #define SOCKET_ERROR -1
 #define BUFFER_SIZE 1024
@@ -57,6 +57,13 @@ private:
     void setNonBlocking(int fd);
     void processCommand(int clientId);
     void broadcastToChannel(const Channel& channel, const std::string& message);
+    int getClientIndexBySocket(int socket) {
+        for (size_t i = 0; i < clients.size(); i++) {
+            if (clients[i].getSocket() == socket)
+                return i;
+        }
+        return -1;
+    }
 
 public:
     Server(int port, const std::string& pass);

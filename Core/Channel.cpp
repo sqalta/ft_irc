@@ -1,4 +1,4 @@
-#include "Channel.hpp"
+#include "Includes/Channel.hpp"
 
 Channel::Channel(std::string name) : 
     channelName(name), 

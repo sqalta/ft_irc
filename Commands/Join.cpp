@@ -1,6 +1,6 @@
-#include "../Server/Server.hpp"
-#include "../Commands/NumericReplies.hpp"
-#include "../Commands/ValidationUtils.hpp"
+#include "../Core/Includes/Server.hpp"
+#include "NumericReplies.hpp"
+#include "ValidationUtils.hpp"
 
 void Server::Join(size_t j, int id) {
     if (!ValidationUtils::validateCommandFormat(commands, 2)) {

@@ -1,9 +1,9 @@
 NAME := ircserv
 
 SRCS := \
-	Channel/Channel.cpp \
-	Client/Client.cpp \
-	Server/Server.cpp \
+	Core/Channel.cpp \
+	Core/Client.cpp \
+	Core/Server.cpp \
 	main.cpp \
 	Commands/Nick.cpp \
 	Commands/Pass.cpp \

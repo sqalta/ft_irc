@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "Includes/Server.hpp"
 
 Server::Server(int port, const std::string& pass) 
     : port(port), pass(pass), serverName("ft_irc") {
@@ -196,21 +196,38 @@ int Server::getClientIndex2(const std::string& name, const std::vector<Client>& 
 }
 
 void Server::checkCommands(Server& server, const std::string& buffer, int socket) {
-    std::stringstream ss(buffer);
+    std::istringstream ss(buffer);
     (void)server;
     (void)socket;
     std::string line;
     commands.clear();
 
-    while(std::getline(ss, line)) {
-        std::size_t prev = 0, pos;
-        while ((pos = line.find_first_of(" :\r\n", prev)) != std::string::npos) {
-            if (pos > prev)
-                commands.push_back(line.substr(prev, pos-prev));
-            prev = pos+1;
+    while (std::getline(ss, line, '\n')) {
+        if (line.empty()) continue;
+        
+        if (line[line.length()-1] == '\r')
+            line = line.substr(0, line.length()-1);
+
+        std::vector<std::string> lineCommands;
+        std::string word;
+        std::istringstream iss(line);
+        bool colonFound = false;
+
+        while (iss >> word) {
+            if (!colonFound && word[0] == ':') {
+                colonFound = true;
+                std::string restOfLine;
+                getline(iss, restOfLine);
+                lineCommands.push_back(word.substr(1) + restOfLine);
+                break;
+            }
+            lineCommands.push_back(word);
         }
-        if (prev < line.length())
-            commands.push_back(line.substr(prev, std::string::npos));
+
+        if (!lineCommands.empty()) {
+            commands = lineCommands;
+            processCommand(getClientIndexBySocket(socket));
+        }
     }
 }
 

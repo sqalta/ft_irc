@@ -3,8 +3,8 @@
 
 #include <string>
 #include <vector>
-#include "../Channel/Channel.hpp"
-#include "../Client/Client.hpp"
+#include "../Core/Includes/Channel.hpp"
+#include "../Core/Includes/Client.hpp"
 
 class ValidationUtils {
 public:
