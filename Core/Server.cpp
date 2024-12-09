@@ -151,15 +151,16 @@ int checkClientDisconnected(int receivedBytes) {
 void Server::handleClientEvent(size_t clientIndex) {
     char buffer[BUFFER_SIZE] = {0};
     int receivedBytes = recv(pollfds[clientIndex].fd, buffer, BUFFER_SIZE - 1, 0);
-	if (checkBufferOverflow(receivedBytes))
-		return disconnectClient(clientIndex);
-    if (checkClientDisconnected(receivedBytes)) {
+    
+    if (checkBufferOverflow(receivedBytes))
         return disconnectClient(clientIndex);
-    }
+        
+    if (checkClientDisconnected(receivedBytes))
+        return disconnectClient(clientIndex);
+        
     buffer[receivedBytes] = '\0';
-    checkCommands(buffer, pollfds[clientIndex].fd);
     logCommand(buffer, clientIndex - 1);
-    processCommand(clientIndex - 1);
+    checkCommands(buffer, pollfds[clientIndex].fd);
 }
 
 
@@ -173,21 +174,10 @@ void Server::setNonBlocking(int fd) {
 
 void Server::disconnectClient(size_t index) {
     int clientId = index - 1;
-    
-    // Socket'i kapat
-    close(pollfds[index].fd);
-    
-    // Quit mesajını gönder ve cleanup yap
     if (clientId >= 0 && clientId < static_cast<int>(clients.size())) {
         Quit(0, clientId);
-        clients.erase(clients.begin() + clientId);
     }
-    
-    // Pollfd'den temizle
     pollfds.erase(pollfds.begin() + index);
-    
-    std::cout << "[INFO] Client disconnected. Remaining clients: " 
-              << clients.size() << std::endl;
 }
 
 void Server::processCommand(int clientId) {
@@ -199,7 +189,7 @@ void Server::processCommand(int clientId) {
         if (commands[0] == PASS || commands[0] == USER || commands[0] == NICK) {
             (this->*(it->second))(0, clientId);
             // Her komuttan sonra kayıt durumunu kontrol et
-            checkRegistration(clientId);
+            completeUserRegistration(clientId);
         }
         // Diğer komutlar için login kontrolü yap
         else if (clients[clientId].getLoggedIn()) {
@@ -268,14 +258,26 @@ std::vector<std::string> Server::parseLine(const std::string& line) {
     std::vector<std::string> parsedCommands;
     std::istringstream lineStream(line);
     std::string word;
-    bool found = false; // ':' sonrası mesajın bir kez alınması için bayrak
+    bool found = false;
+    bool isFirstWord = true;
 
     while (lineStream >> word) {
-        // Eğer ':' ile başlayan bir kelime varsa, kalan tüm satırı mesaj olarak işle
+        if (isFirstWord) {
+            // İlk kelimeyi uppercase yap
+            std::string upperWord;
+            for (size_t i = 0; i < word.length(); ++i) {
+                upperWord += toupper(word[i]);
+            }
+            parsedCommands.push_back(upperWord);
+            isFirstWord = false;
+            continue;
+        }
+
+        // ':' ile başlayan mesaj kontrolü
         if (!found && word[0] == ':') {
             found = true;
             std::string remainingLine;
-            std::getline(lineStream, remainingLine); // ':' sonrası kalan kısmı oku
+            std::getline(lineStream, remainingLine);
             parsedCommands.push_back(word.substr(1) + remainingLine);
             break;
         }
@@ -307,16 +309,36 @@ int Server::getChannelIndex(const std::string& channelName) {
     return -1;
 }
 
-void Server::checkRegistration(int id) {
+void Server::completeUserRegistration(int id) {
     if (clients[id].isRegistered() && !clients[id].getLoggedIn()) {
         std::string nick = clients[id].getNickName();
         clients[id].setLoggedIn(true);
         clients[id].setRegistered(true);
         
+        // Temel hoşgeldin mesajları
         clients[id].print("001 " + nick + " :Welcome to the IRC Network, " + nick + "\r\n");
         clients[id].print("002 " + nick + " :Your host is " + serverName + ", running version 1.0\r\n");
         clients[id].print("003 " + nick + " :This server was created today\r\n");
         clients[id].print("004 " + nick + " " + serverName + " 1.0 o o\r\n");
+        
+        // Kullanıcı sayısı bilgisi
+        clients[id].print("251 " + nick + " :There are " + std::to_string(clients.size()) + 
+                         " users and 0 services on " + serverName + "\r\n");
+        
+        // WHO listesi
+        for (size_t i = 0; i < clients.size(); i++) {
+            if (clients[i].getLoggedIn()) {
+                clients[id].print("352 " + nick + " * " + 
+                                clients[i].getUserName() + " " +
+                                clients[i].getIp() + " " +
+                                serverName + " " +
+                                clients[i].getNickName() + 
+                                " H :0 " + clients[i].getUserName() + "\r\n");
+            }
+        }
+        clients[id].print("315 " + nick + " * :End of WHO list\r\n");
+        
+        // MOTD
         clients[id].print("375 " + nick + " :- " + serverName + " Message of the day -\r\n");
         clients[id].print("376 " + nick + " :End of /MOTD command\r\n");
 

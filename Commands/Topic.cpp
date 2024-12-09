@@ -24,7 +24,7 @@ void Server::Topic(size_t j, int id)
     Channel& channel = channels[channelIndex];
     if (isInChannel(channel.getChannelAdmins(), clients[id].getNickName()) == -1)
     {
-        clients[id].print("ERROR: You are not an admin in " + channel.getChannelName() + "\n");
+        clients[id].print("ERROR: You are not an operator in " + channel.getChannelName() + "\n");
         return;
     }
 

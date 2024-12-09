@@ -16,5 +16,5 @@ void Server::Nick(size_t j, int id) {
     
     clients[id].setNickName(newNick);
     clients[id].setNickOK(true);
-    checkRegistration(id);
+    completeUserRegistration(id);
 }

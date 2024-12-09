@@ -20,5 +20,5 @@ void Server::Pass(size_t j, int id) {
 
     clients[id].setPass(commands[j + 1]);
     clients[id].setPassOK(true);
-    checkRegistration(id);
+    completeUserRegistration(id);
 }

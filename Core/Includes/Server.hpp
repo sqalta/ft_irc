@@ -81,7 +81,7 @@ public:
     int isInChannel(const std::vector<Client>& clients, const std::string& nickname);
     int getChannelIndex(const std::string& channelName);
     void logCommand(const std::string& command, int clientId);
-    void checkRegistration(int id);
+    void completeUserRegistration(int id);
 	std::vector<std::string> parseLine(const std::string& line);
 
     // Komut işleme metodları
