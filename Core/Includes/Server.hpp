@@ -78,7 +78,7 @@ public:
     int perr(const std::string& err, int sockfd);
     int getClientIndex(const std::string& name);
     int getClientIndexInList(const std::string& name, const std::vector<Client>& clients);
-    void checkCommands(const std::string& buffer, int socket);
+    void parseAndProcessCommand(const std::string& buffer, int socket);
     int isInChannel(const std::vector<Client>& clients, const std::string& nickname);
     int getChannelIndex(const std::string& channelName);
     void logCommand(const std::string& command, int clientId);

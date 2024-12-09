@@ -161,15 +161,15 @@ void Server::handleClientEvent(size_t clientIndex) {
         
     buffer[receivedBytes] = '\0';
     logCommand(buffer, clientIndex - 1);
-    checkCommands(buffer, pollfds[clientIndex].fd);
+    parseAndProcessCommand(buffer, pollfds[clientIndex].fd);
 }
 
 
 void Server::setNonBlocking(int fd) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
-        perr("[ERROR] Failed to get socket flags", fd);
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+    //int flags = fcntl(fd, F_GETFL, 0);
+    //if (flags == -1)
+    //    perr("[ERROR] Failed to get socket flags", fd);
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
         perr("[ERROR] Failed to set non-blocking mode", fd);
 }
 
@@ -232,7 +232,7 @@ int Server::getClientIdBySocket(int socket) {
     return -1;
 }
 
-void Server::checkCommands(const std::string& buffer, int socket) {
+void Server::parseAndProcessCommand(const std::string& buffer, int socket) {
     std::istringstream bufferStream(buffer);
     (void)socket;
     commands.clear();

@@ -27,6 +27,8 @@ public:
                                   const std::string& sourceNick, 
                                   const std::string& targetNick);
 
+    static bool validateNickFormat(const std::string& nick);
+
 private:
     ValidationUtils();
 };

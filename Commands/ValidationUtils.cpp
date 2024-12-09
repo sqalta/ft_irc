@@ -58,3 +58,24 @@ bool ValidationUtils::canModifyOperatorStatus(const Channel& channel,
     if (channel.isAdmin(targetNick)) return false;
     return true;
 }
+
+bool ValidationUtils::validateNickFormat(const std::string& nick) {
+    if (nick.empty() || nick.length() > 9)
+        return false;
+        
+    // İlk karakter harf veya özel karakter olmalı
+    if (!isalpha(nick[0]) && nick[0] != '[' && nick[0] != ']' && 
+        nick[0] != '\\' && nick[0] != '`' && nick[0] != '_' && 
+        nick[0] != '^' && nick[0] != '{' && nick[0] != '|' && nick[0] != '}')
+        return false;
+        
+    // Diğer karakterler harf, rakam veya özel karakter olabilir
+    for (size_t i = 1; i < nick.length(); i++) {
+        if (!isalnum(nick[i]) && nick[i] != '-' && nick[i] != '[' && 
+            nick[i] != ']' && nick[i] != '\\' && nick[i] != '`' && 
+            nick[i] != '_' && nick[i] != '^' && nick[i] != '{' && 
+            nick[i] != '|' && nick[i] != '}')
+            return false;
+    }
+    return true;
+}
