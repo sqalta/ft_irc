@@ -32,6 +32,7 @@
 #define TOPIC "TOPIC"
 #define NOTICE "NOTICE"
 #define MODE "MODE"
+#define INVITE "INVITE"
 
 class Server {
 private:
@@ -77,11 +78,11 @@ public:
     int perr(const std::string& err, int sockfd);
     int getClientIndex(const std::string& name);
     int getClientIndexInList(const std::string& name, const std::vector<Client>& clients);
-    void checkCommands(const std::string& buffer, int socket);
+    void parseAndProcessCommand(const std::string& buffer, int socket);
     int isInChannel(const std::vector<Client>& clients, const std::string& nickname);
     int getChannelIndex(const std::string& channelName);
     void logCommand(const std::string& command, int clientId);
-    void checkRegistration(int id);
+    void completeUserRegistration(int id);
 	std::vector<std::string> parseLine(const std::string& line);
 
     // Komut işleme metodları
@@ -97,6 +98,7 @@ public:
     void Topic(size_t j, int id);
     void Notice(size_t j, int id);
     void Mode(size_t j, int id);
+    void Invite(size_t j, int id);
 };
 
 #endif

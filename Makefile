@@ -17,6 +17,7 @@ SRCS := \
 	Commands/Quit.cpp \
 	Commands/Notice.cpp \
 	Commands/Mode.cpp \
+	Commands/Invite.cpp \
 	Commands/ValidationUtils.cpp
 
 OBJ_DIR := obj

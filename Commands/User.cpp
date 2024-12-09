@@ -16,5 +16,5 @@ void Server::User(size_t j, int id) {
     clients[id].setUserName(commands[j + 1]);
     clients[id].setIp(commands[j + 3]);
     clients[id].setUserOK(true);
-    checkRegistration(id);
+    completeUserRegistration(id);
 }
