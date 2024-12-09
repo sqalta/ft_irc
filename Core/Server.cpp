@@ -34,6 +34,7 @@ void Server::initializeCommandMap() {
     commandMap[TOPIC] = &Server::Topic;
     commandMap[NOTICE] = &Server::Notice;
     commandMap[MODE] = &Server::Mode;
+    commandMap[INVITE] = &Server::Invite;
 }
 
 void Server::initializeMainSocket() {

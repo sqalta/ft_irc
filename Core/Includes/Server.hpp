@@ -32,6 +32,7 @@
 #define TOPIC "TOPIC"
 #define NOTICE "NOTICE"
 #define MODE "MODE"
+#define INVITE "INVITE"
 
 class Server {
 private:
@@ -97,6 +98,7 @@ public:
     void Topic(size_t j, int id);
     void Notice(size_t j, int id);
     void Mode(size_t j, int id);
+    void Invite(size_t j, int id);
 };
 
 #endif
