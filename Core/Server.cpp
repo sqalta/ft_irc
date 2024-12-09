@@ -250,7 +250,7 @@ void Server::checkCommands(const std::string& buffer, int socket) {
 
     while (std::getline(bufferStream, line, '\n')) {
         if (line.empty()) continue;
-
+		//test
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
